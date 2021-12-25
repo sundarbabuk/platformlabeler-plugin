@@ -1,9 +1,32 @@
 pipeline {
-  agent any
+    agent any
+    environment {
+        AWS_DEFAULT_REGION="us-east-1"
+        AWS_ACCESS_KEY_ID     = credentials('jenkins-aws-secret-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('jenkins-aws-secret-access-key')
+    //     AWS_ACCESS_KEY_ID=credentials("AWS_ACCESS_KEY_ID")
+    //     AWS_SECRET_ACCESS_KEY=credentials("AWS_SECRET_ACCESS_KEY")
+        // PATH="$PATH:$HOME/dctlenv/bin/"
+        def mvnHome = tool name: 'maven-3', type: 'maven'
+        def mvnCMD = "${mvnHome}/bin/mvn"
+    //     def scannerHome = tool 'sonar'
+    //     JAVA_HOME='${scannerHome}/jdk'
+        def dockerHome = tool 'docker'
+        PATH = "${dockerHome}/bin:${env.PATH}"
+        registry = "sundarbabu/petdemo" 
+        registryCredential = 'dockerhub' 
+        dockerImage = 'sundarbabu/petdemo:v3.0.0'
+        def server = Artifactory.server 'artifactory'
+        def rtDocker = Artifactory.docker server: server
+        def ARTIFACTORY_DOCKER_REGISTRY = "devsecopsdemo.jfrog.io/default-docker-local"
+        STACKHAWK_API_KEY = credentials("stackhawk-api-key")
+    //     DOCKER_CONTENT_TRUST=1
+     
+    }
   stages {
     stage("build") {
       steps {
-        sh 'mvn --batch-mode clean clover:setup test clover:aggregate clover:clover -s mvn-settings.xml'
+        sh "${mvnCMD} --batch-mode clean clover:setup test clover:aggregate clover:clover -s mvn-settings.xml"
         step([
           $class: 'CloverPublisher',
           cloverReportDir: 'target/site',
